@@ -2,7 +2,24 @@ from django.shortcuts import render
 from .models import Post
 from marketing.models import Signup
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Count
+from django.db.models import Count, Q
+
+
+def search(request):
+    queryset = Post.objects.all()
+    query = request.GET.get('q')
+    if query:
+        queryset = queryset.filter(
+            Q(title__icontains=query) |
+            Q(overview__icontains=query)
+        ).distinct() # distincts its used for return only one valor, even if repeat.
+    
+    context = {
+        'queryset': queryset
+    }
+
+    return render(request, 'search_results.html', context)
+
 
 
 def get_category_count():
