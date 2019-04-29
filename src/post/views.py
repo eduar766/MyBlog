@@ -1,6 +1,16 @@
 from django.shortcuts import render
 from .models import Post
 from marketing.models import Signup
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Count
+
+
+def get_category_count():
+    queryset = Post \
+        .objects \
+        .values('category__title') \
+        .annotate(Count('category__title')) #Cuenta la cantidad de post en cada categoria
+    return queryset
 
 def index(request):
     featured = Post.objects.filter(featured=True)
@@ -19,7 +29,27 @@ def index(request):
     return render(request, 'index.html', context)
 
 def blog(request):
-    return render(request, 'blog.html', {})
+    category_count = get_category_count()
+    post_list = Post.objects.all().order_by('-timestamp')
+    most_recent = Post.objects.all().order_by('-timestamp')[0:3]
+    paginator = Paginator(post_list, 4)
+    page_request_var = 'page'
+    page = request.GET.get(page_request_var) # Obtener valor de la pagina 'paginada' 
+    try:
+        paginated_queryset = paginator.page(page)
+    except PageNotAnInteger:
+        paginated_queryset = paginator.page(1)
+    except EmptyPage:
+        paginated_queryset = paginator.page(paginator.num_pages)
 
-def post(request):
+    context = {
+        # 'post_list': paginated_queryset,
+        'queryset': paginated_queryset, # queryset == post_list
+        'page_request_var': page_request_var,
+        'most_recent': most_recent,
+        'category_count': category_count
+    }
+    return render(request, 'blog.html', context)
+
+def post(request, id):
     return render(request, 'post.html', {})
