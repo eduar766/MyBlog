@@ -1,9 +1,16 @@
 from django.shortcuts import render, get_object_or_404, redirect, reverse
-from .models import Post
+from .models import Post, Author
 from marketing.models import Signup
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count, Q
-from .forms import CommentForm
+from .forms import CommentForm, PostForm
+
+
+def get_author(user): #Method to obtain the user
+    qs = Author.objects.filter(user=user)
+    if qs.exists():
+        return qs[0]
+    return None
 
 
 def search(request):
@@ -91,3 +98,49 @@ def post(request, id):
         'form': form
     }
     return render(request, 'post.html', context)
+
+
+def post_create(request):
+    title = 'Create'
+    form = PostForm(request.POST or None, request.FILES or None)
+    author = get_author(request.user)
+    if request.method == "POST":
+        if form.is_valid():
+            form.instance.author = author
+            form.save()
+            return redirect(reverse('postsito', kwargs={
+                'id': form.instance.id
+            }))
+    
+    context = {
+        'form': form,
+        'title': title,
+    }
+
+    return render(request, 'post_create.html', context)
+
+def post_update(request, id):
+    title = 'Update'
+    post = get_object_or_404(Post, id=id)
+    form = PostForm(request.POST or None, request.FILES or None, instance=post)
+    author = get_author(request.user)
+    if request.method == "POST":
+        if form.is_valid():
+            form.instance.author = author
+            form.save()
+            return redirect(reverse('postsito', kwargs={
+                'id': form.instance.id
+            }))
+    
+    context = {
+        'form': form,
+        'title': title,
+    }
+
+    return render(request, 'post_create.html', context)
+
+def post_delete(request, id):
+    post = get_object_or_404(Post, id=id)
+    post.delete()
+    return redirect(reverse('post-list'))
+
